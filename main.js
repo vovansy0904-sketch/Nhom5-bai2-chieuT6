@@ -1,142 +1,142 @@
-// Cấu hình (Thay App ID của bạn vào đây)
-const config = {
-    appId: "MÃ_APP_ID_CỦA_BẠN", // <--- NHỚ DÁN APP ID VÀO ĐÂY
-    channel: "zalo-demo",
-    token: null
+// CẤU HÌNH (Thay App ID của bạn vào đây)
+const APP_ID = "05e9962a6b0e47ddae604c22ed9f85af"; // <--- Dán App ID vào đây
+const CHANNEL = "lop-hoc-vui-ve";
+const TOKEN = null;
+
+const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+
+let localTracks = {
+    audioTrack: null,
+    videoTrack: null
 };
 
-// Biến toàn cục lưu trạng thái
-let rtc = {
-    client: null,
-    localAudioTrack: null,
-    localVideoTrack: null,
-};
-
+let localName = "Tôi";
 let isMicOn = true;
 let isCamOn = true;
 
-// 1. Khởi tạo Client
-rtc.client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
+// --- PHẦN 1: XỬ LÝ NÚT BẤM ---
 
-// 2. Chức năng: THAM GIA (JOIN)
-document.getElementById("join-btn").onclick = async function () {
-    try {
-        // Tham gia vào phòng
-        await rtc.client.join(config.appId, config.channel, config.token, null);
-        
-        // Tạo Audio và Video từ máy mình
-        rtc.localAudioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        rtc.localVideoTrack = await AgoraRTC.createCameraVideoTrack();
-
-        // Hiển thị video của mình lên giao diện
-        rtc.localVideoTrack.play("local-player");
-
-        // Phát tín hiệu cho người khác thấy
-        await rtc.client.publish([rtc.localAudioTrack, rtc.localVideoTrack]);
-
-        console.log("Đã tham gia thành công!");
-        
-        // Cập nhật giao diện nút bấm
-        toggleButtons(true); 
-
-    } catch (error) {
-        console.error("Lỗi khi tham gia:", error);
+// Nút VÀO PHÒNG
+document.getElementById("join-btn").onclick = async () => {
+    const inputName = document.getElementById("username-input").value;
+    if (!inputName) {
+        alert("Vui lòng nhập tên!");
+        return;
     }
-};
-
-// 3. Chức năng: RỜI KHỎI (LEAVE)
-document.getElementById("leave-btn").onclick = async function () {
-    // Dừng phát và đóng thiết bị
-    if(rtc.localAudioTrack) { rtc.localAudioTrack.close(); }
-    if(rtc.localVideoTrack) { rtc.localVideoTrack.close(); }
-
-    // Rời phòng
-    await rtc.client.leave();
+    localName = inputName;
     
-    // Xóa hình ảnh trên màn hình
-    document.getElementById("local-player").innerHTML = '<div class="user-label">Bạn (Tôi)</div>';
-    document.getElementById("remote-player").innerHTML = '<div class="user-label">Người bên kia</div>';
+    // Ẩn màn hình nhập, hiện giao diện gọi
+    document.getElementById("join-screen").style.display = "none";
+    document.getElementById("controls").style.display = "flex";
+
+    await joinStream();
+};
+
+// Nút MIC
+document.getElementById("mic-btn").onclick = async () => {
+    if (!localTracks.audioTrack) return;
+    isMicOn = !isMicOn;
+    await localTracks.audioTrack.setEnabled(isMicOn);
+    // Đổi màu nút
+    document.getElementById("mic-btn").className = isMicOn ? "btn-control" : "btn-control btn-off";
+    document.getElementById("mic-btn").innerHTML = isMicOn ? '<i class="fas fa-microphone"></i>' : '<i class="fas fa-microphone-slash"></i>';
+};
+
+// Nút CAM
+document.getElementById("cam-btn").onclick = async () => {
+    if (!localTracks.videoTrack) return;
+    isCamOn = !isCamOn;
+    await localTracks.videoTrack.setEnabled(isCamOn);
+    // Đổi màu nút
+    document.getElementById("cam-btn").className = isCamOn ? "btn-control" : "btn-control btn-off";
+    document.getElementById("cam-btn").innerHTML = isCamOn ? '<i class="fas fa-video"></i>' : '<i class="fas fa-video-slash"></i>';
+};
+
+// Nút RỜI KHỎI
+document.getElementById("leave-btn").onclick = async () => {
+    // Đóng tracks
+    for (let trackName in localTracks) {
+        var track = localTracks[trackName];
+        if (track) {
+            track.stop();
+            track.close();
+            localTracks[trackName] = null;
+        }
+    }
+    // Rời phòng Agora
+    await client.leave();
     
-    // Cập nhật giao diện nút bấm
-    toggleButtons(false);
-    console.log("Đã rời cuộc gọi.");
+    // Xóa hết video trên màn hình
+    document.getElementById("video-grid").innerHTML = "";
+    
+    // Hiện lại màn hình chờ
+    document.getElementById("controls").style.display = "none";
+    document.getElementById("join-screen").style.display = "flex";
 };
 
-// 4. Chức năng: BẬT/TẮT MIC
-document.getElementById("mic-btn").onclick = async function () {
-    if (!rtc.localAudioTrack) return;
 
-    isMicOn = !isMicOn; // Đảo ngược trạng thái
-    await rtc.localAudioTrack.setEnabled(isMicOn); // Lệnh tắt/mở mic thực sự
+// --- PHẦN 2: LOGIC GỌI VIDEO ---
 
-    // Đổi màu và chữ trên nút
-    const btn = document.getElementById("mic-btn");
-    if (isMicOn) {
-        btn.innerText = "🎙️ Mic: Bật";
-        btn.className = "btn-active";
-    } else {
-        btn.innerText = "🔇 Mic: Tắt";
-        btn.className = "btn-off";
-    }
-};
+async function joinStream() {
+    // Sự kiện khi có người khác tham gia
+    client.on("user-published", handleUserJoined);
+    client.on("user-unpublished", handleUserLeft);
 
-// 5. Chức năng: BẬT/TẮT CAMERA
-document.getElementById("cam-btn").onclick = async function () {
-    if (!rtc.localVideoTrack) return;
+    // Join vào kênh (UID để null để Agora tự sinh số ngẫu nhiên)
+    const uid = await client.join(APP_ID, CHANNEL, TOKEN, null);
 
-    isCamOn = !isCamOn; // Đảo ngược trạng thái
-    await rtc.localVideoTrack.setEnabled(isCamOn); // Lệnh tắt/mở cam thực sự
+    // Tạo Mic và Cam local
+    localTracks.audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+    localTracks.videoTrack = await AgoraRTC.createCameraVideoTrack();
 
-    // Đổi màu và chữ trên nút
-    const btn = document.getElementById("cam-btn");
-    if (isCamOn) {
-        btn.innerText = "📷 Cam: Bật";
-        btn.className = "btn-active";
-    } else {
-        btn.innerText = "🚫 Cam: Tắt";
-        btn.className = "btn-off";
-    }
-};
+    // Hiển thị video của chính mình
+    createVideoContainer(uid, localName, localTracks.videoTrack);
 
-// 6. Xử lý khi có NGƯỜI KHÁC tham gia/rời đi
-rtc.client.on("user-published", async (user, mediaType) => {
-    // Subscribe (đăng ký nhận) hình/tiếng của họ
-    await rtc.client.subscribe(user, mediaType);
+    // Phát tín hiệu lên server
+    await client.publish(Object.values(localTracks));
+}
+
+// Hàm hiển thị video (dùng chung cho cả mình và người khác)
+function createVideoContainer(uid, name, track) {
+    // Tạo khung thẻ DIV
+    const wrapper = document.createElement("div");
+    wrapper.id = `user-container-${uid}`;
+    wrapper.className = "video-card";
+    
+    // Tạo nhãn tên
+    const nameLabel = document.createElement("div");
+    nameLabel.className = "user-name";
+    nameLabel.innerText = name;
+    wrapper.appendChild(nameLabel);
+
+    // Thêm vào lưới
+    document.getElementById("video-grid").appendChild(wrapper);
+
+    // Play video vào trong khung vừa tạo
+    track.play(wrapper);
+}
+
+// Khi người khác tham gia
+async function handleUserJoined(user, mediaType) {
+    await client.subscribe(user, mediaType);
 
     if (mediaType === "video") {
-        // Nếu là hình ảnh -> Chiếu vào khung remote-player
-        user.videoTrack.play("remote-player");
+        // Kiểm tra xem đã có khung người này chưa, nếu chưa thì tạo
+        if (!document.getElementById(`user-container-${user.uid}`)) {
+            // Vì không có Server lưu tên, ta tạm hiển thị ID của họ
+            createVideoContainer(user.uid, `Người dùng ${user.uid}`, user.videoTrack);
+        }
     }
+
     if (mediaType === "audio") {
-        // Nếu là âm thanh -> Phát tiếng
         user.audioTrack.play();
     }
-});
+}
 
-rtc.client.on("user-unpublished", (user) => {
-    // Khi họ tắt cam hoặc rời đi -> Xóa hình
-    const remotePlayerContainer = document.getElementById("remote-player");
-    // Giữ lại cái nhãn tên, chỉ xóa video
-    remotePlayerContainer.innerHTML = '<div class="user-label">Người bên kia</div>'; 
-});
-
-
-// HÀM PHỤ TRỢ: Quản lý ẩn hiện nút
-function toggleButtons(joined) {
-    document.getElementById("join-btn").disabled = joined;
-    document.getElementById("leave-btn").disabled = !joined;
-    document.getElementById("mic-btn").disabled = !joined;
-    document.getElementById("cam-btn").disabled = !joined;
-    
-    // Nếu rời đi thì reset trạng thái nút về mặc định
-    if (!joined) {
-        document.getElementById("join-btn").style.backgroundColor = "#0068ff";
-        isMicOn = true; isCamOn = true;
-        document.getElementById("mic-btn").innerText = "🎙️ Mic: Bật";
-        document.getElementById("mic-btn").className = "btn-active";
-        document.getElementById("cam-btn").innerText = "📷 Cam: Bật";
-        document.getElementById("cam-btn").className = "btn-active";
-    } else {
-        document.getElementById("join-btn").style.backgroundColor = "#ccc";
+// Khi người khác rời đi
+function handleUserLeft(user) {
+    const wrapper = document.getElementById(`user-container-${user.uid}`);
+    if (wrapper) {
+        wrapper.remove(); // Xóa div khỏi màn hình
     }
 }

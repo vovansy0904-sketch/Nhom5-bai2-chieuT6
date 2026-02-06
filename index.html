@@ -3,83 +3,126 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zalo Call Clone</title>
+    <title>Họp Nhóm Online</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; height: 100vh; margin: 0; }
-        h2 { margin-top: 20px; color: #0068ff; } /* Màu xanh Zalo */
-        
-        /* Khu vực hiển thị Video */
-        #video-container { 
-            display: flex; 
-            justify-content: center; 
-            gap: 20px; 
-            width: 90%; 
-            max-width: 1000px;
-            margin-top: 20px;
+        :root {
+            --bg-color: #202124;
+            --control-bg: #3c4043;
+            --red: #ea4335;
+            --blue: #8ab4f8;
         }
-        .video-box { 
-            width: 45%; 
-            aspect-ratio: 16/9; 
-            background: #000; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            position: relative;
-        }
-        /* Nhãn tên người dùng */
-        .user-label {
-            position: absolute; bottom: 10px; left: 10px;
-            color: white; background: rgba(0,0,0,0.5);
-            padding: 4px 8px; border-radius: 4px; font-size: 14px; z-index: 10;
-        }
-        
-        /* Thanh điều khiển bên dưới */
-        .controls { 
-            margin-top: 30px; 
-            display: flex; 
-            gap: 15px; 
-            background: white;
-            padding: 15px 30px;
-            border-radius: 50px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        
-        button {
-            border: none;
-            padding: 12px 24px;
-            border-radius: 25px;
-            cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        
-        /* Các trạng thái nút */
-        .btn-primary { background-color: #0068ff; color: white; } /* Nút Join */
-        .btn-danger { background-color: #ff4d4f; color: white; }  /* Nút Leave */
-        .btn-active { background-color: #e6f7ff; color: #0068ff; border: 1px solid #0068ff; } /* Đang bật */
-        .btn-off { background-color: #ff4d4f; color: white; border: 1px solid #ff4d4f; } /* Đang tắt */
 
-        button:disabled { background-color: #ccc; cursor: not-allowed; border: none; color: #666; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: white;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- MÀN HÌNH NHẬP TÊN (LOBBY) --- */
+        #join-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color);
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            z-index: 100;
+        }
+
+        .join-card {
+            background: white; color: #333; padding: 40px; border-radius: 20px;
+            text-align: center; width: 300px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        
+        input {
+            width: 80%; padding: 12px; margin: 20px 0;
+            border: 2px solid #ddd; border-radius: 8px; font-size: 16px;
+        }
+
+        /* --- KHUNG VIDEO LƯỚI (GRID) --- */
+        #video-grid {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        /* Mỗi ô video */
+        .video-card {
+            position: relative;
+            width: 400px; height: 300px; /* Mặc định */
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid #444;
+        }
+
+        /* Tự động co giãn khi đông người */
+        @media (max-width: 768px) {
+            .video-card { width: 100%; height: 250px; }
+        }
+
+        .user-name {
+            position: absolute; bottom: 10px; left: 10px;
+            background: rgba(0,0,0,0.6); color: white;
+            padding: 5px 10px; border-radius: 4px; font-size: 14px;
+            z-index: 10;
+        }
+
+        /* --- THANH ĐIỀU KHIỂN --- */
+        #controls {
+            height: 80px;
+            background: var(--control-bg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            display: none; /* Ẩn lúc chưa vào */
+        }
+
+        .btn-control {
+            width: 50px; height: 50px;
+            border-radius: 50%; border: none;
+            font-size: 20px; cursor: pointer;
+            background: #606368; color: white;
+            transition: 0.2s;
+        }
+
+        .btn-control:hover { background: #707378; }
+        .btn-off { background: var(--red) !important; }
+        .btn-leave { background: var(--red); width: 80px; border-radius: 30px; }
+
     </style>
 </head>
 <body>
 
-    <h2>📞 Video Call Demo (Zalo Style)</h2>
-
-    <div id="video-container">
-        <div id="local-player" class="video-box">
-            <div class="user-label">Bạn (Tôi)</div>
-        </div>
-        <div id="remote-player" class="video-box">
-            <div class="user-label">Người bên kia</div>
+    <div id="join-screen">
+        <div class="join-card">
+            <h2>Video Meeting</h2>
+            <input type="text" id="username-input" placeholder="Nhập tên của bạn...">
+            <br>
+            <button id="join-btn" style="background: #007bff; color: white; padding: 12px 30px; border: none; border-radius: 25px; cursor: pointer; font-weight: bold;">
+                Vào Phòng
+            </button>
         </div>
     </div>
 
-    <div class="controls">
-        <button id="join-btn" class="btn-primary">Tham gia</button>
-        <button id="mic-btn" class="btn-active" disabled>🎙️ Mic: Bật</button>
-        <button id="cam-btn" class="btn-active" disabled>📷 Cam: Bật</button>
-        <button id="leave-btn" class="btn-danger" disabled>Rời cuộc gọi</button>
+    <div id="video-grid">
+        </div>
+
+    <div id="controls">
+        <button id="mic-btn" class="btn-control"><i class="fas fa-microphone"></i></button>
+        <button id="cam-btn" class="btn-control"><i class="fas fa-video"></i></button>
+        <button id="leave-btn" class="btn-control btn-leave"><i class="fas fa-phone-slash"></i></button>
     </div>
 
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
