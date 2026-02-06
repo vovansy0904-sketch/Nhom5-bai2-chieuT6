@@ -1,5 +1,5 @@
 // CẤU HÌNH (Thay App ID của bạn vào đây)
-const APP_ID = "05e9962a6b0e47ddae604c22ed9f85af"; // <--- Dán App ID vào đây
+const APP_ID = "85956f6d98a2458e8c08946b6299beca"; // <--- Dán App ID vào đây
 const CHANNEL = "lop-hoc-vui-ve";
 const TOKEN = null;
 
