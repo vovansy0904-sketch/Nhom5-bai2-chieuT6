@@ -1,24 +1,85 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <title>Video Call App</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zalo Call Clone</title>
     <style>
-        #video-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .video-player { width: 100%; height: 400px; background: #222; border-radius: 8px; }
-        .controls { margin-top: 20px; text-align: center; }
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; height: 100vh; margin: 0; }
+        h2 { margin-top: 20px; color: #0068ff; } /* Màu xanh Zalo */
+        
+        /* Khu vực hiển thị Video */
+        #video-container { 
+            display: flex; 
+            justify-content: center; 
+            gap: 20px; 
+            width: 90%; 
+            max-width: 1000px;
+            margin-top: 20px;
+        }
+        .video-box { 
+            width: 45%; 
+            aspect-ratio: 16/9; 
+            background: #000; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            position: relative;
+        }
+        /* Nhãn tên người dùng */
+        .user-label {
+            position: absolute; bottom: 10px; left: 10px;
+            color: white; background: rgba(0,0,0,0.5);
+            padding: 4px 8px; border-radius: 4px; font-size: 14px; z-index: 10;
+        }
+        
+        /* Thanh điều khiển bên dưới */
+        .controls { 
+            margin-top: 30px; 
+            display: flex; 
+            gap: 15px; 
+            background: white;
+            padding: 15px 30px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        button {
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        /* Các trạng thái nút */
+        .btn-primary { background-color: #0068ff; color: white; } /* Nút Join */
+        .btn-danger { background-color: #ff4d4f; color: white; }  /* Nút Leave */
+        .btn-active { background-color: #e6f7ff; color: #0068ff; border: 1px solid #0068ff; } /* Đang bật */
+        .btn-off { background-color: #ff4d4f; color: white; border: 1px solid #ff4d4f; } /* Đang tắt */
+
+        button:disabled { background-color: #ccc; cursor: not-allowed; border: none; color: #666; }
     </style>
 </head>
 <body>
-    <h2 style="text-align: center;">Hệ thống Video Call Sinh Viên</h2>
-    
+
+    <h2>📞 Video Call Demo (Zalo Style)</h2>
+
     <div id="video-container">
-        <div id="local-player" class="video-player"></div>
-        <div id="remote-player" class="video-player"></div>
+        <div id="local-player" class="video-box">
+            <div class="user-label">Bạn (Tôi)</div>
+        </div>
+        <div id="remote-player" class="video-box">
+            <div class="user-label">Người bên kia</div>
+        </div>
     </div>
 
     <div class="controls">
-        <button id="join-btn">Tham gia cuộc gọi</button>
-        <button id="leave-btn" disabled>Rời khỏi</button>
+        <button id="join-btn" class="btn-primary">Tham gia</button>
+        <button id="mic-btn" class="btn-active" disabled>🎙️ Mic: Bật</button>
+        <button id="cam-btn" class="btn-active" disabled>📷 Cam: Bật</button>
+        <button id="leave-btn" class="btn-danger" disabled>Rời cuộc gọi</button>
     </div>
 
     <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
