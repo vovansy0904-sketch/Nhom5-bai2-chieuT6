@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Video Call App</title>
+    <style>
+        #video-container { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .video-player { width: 100%; height: 400px; background: #222; border-radius: 8px; }
+        .controls { margin-top: 20px; text-align: center; }
+    </style>
+</head>
+<body>
+    <h2 style="text-align: center;">Hệ thống Video Call Sinh Viên</h2>
+    
+    <div id="video-container">
+        <div id="local-player" class="video-player"></div>
+        <div id="remote-player" class="video-player"></div>
+    </div>
+
+    <div class="controls">
+        <button id="join-btn">Tham gia cuộc gọi</button>
+        <button id="leave-btn" disabled>Rời khỏi</button>
+    </div>
+
+    <script src="https://download.agora.io/sdk/release/AgoraRTC_N-4.18.0.js"></script>
+    <script src="main.js"></script>
+</body>
+</html>
